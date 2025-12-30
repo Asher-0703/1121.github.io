@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>小桐同学的专属蛋糕</title>
+    <style>
+        body {
+            /* 强制等宽字体，保证所有字符宽度一致 */
+            font-family: Consolas, "Courier New", monospace !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 95vw;
+            max-width: 420px;
+        }
+        .cut-btn, .eat-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .cut-btn {
+            background-color: #ff7043;
+            color: white;
+        }
+        .cut-btn:hover {
+            background-color: #ff5722;
+        }
+        .eat-btn {
+            background-color: #4caf50;
+            color: white;
+            display: none;
+        }
+        .eat-btn:hover {
+            background-color: #388e3c;
+        }
+        .cake-container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 15px 8px;
+            /* 强制等宽+不换行，保证排版对齐 */
+            white-space: pre;
+            font-family: inherit !important;
+            line-height: 1.3;
+            font-size: 11px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            position: relative;
+            /* 防止字符偏移 */
+            letter-spacing: 0;
+            word-spacing: 0;
+        }
+        .heart {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            width: 100%;
+            font-family: inherit;
+        }
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-family: inherit;
+        }
+        .candle-row {
+            line-height: 1;
+            margin-bottom: 5px;
+            text-align: center;
+            font-family: inherit;
+        }
+        .cut-tip {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #999;
+        }
+        .eat-tip {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 10px;
+            color: #999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="cut-btn" onclick="cutCake()">点击切块</button>
+        <button class="eat-btn" onclick="eatCake()" id="eatBtn">点击吃一块</button>
+        <div class="cake-container" id="cake">
+            <span class="cut-tip" id="cutTip">点击切块</span>
+            <span class="eat-tip" id="eatTip">点击吃一块</span>
+        </div>
+    </div>
+
+    <script>
+        const colors = {
+            candle: "#ff5722",
+            flame: "#ff9800",
+            cream: "#f06292",
+            creamBorder: "#ec407a",
+            fruit: "#4caf50",
+            cake: "#8d6e63",
+            jam: "#e91e63",
+            title: "#3f51b5",
+            heart: ["#e91e63", "#ff4081", "#f06292", "#f48fb1", "#f8bbd0"],
+            cutCream: "#f8bbd0",
+            cutFruit: "#cddc39",
+            eaten: "#f5f5f5"
+        };
+
+        let isCut = false;
+        let eatStep = 0;
+        // 固定字符宽度基准，确保全平台对齐
+        const CHAR_WIDTH = 1;
+        const TOTAL_WIDTH = 36;
+
+        // 蛋糕元素统一字符长度，避免对齐偏差
+        const cakeElements = {
+            title: "🎂 小桐同学的专属蛋糕 🎂",
+            loading: ["[■   ] 蛋糕胚塑形", "[■■  ] 奶油裱花装饰", "[■■■ ] 水果夹心铺层", "[■■■■] 蜡烛摆放完成"],
+            flameLine: "   🔥    🔥    🔥    🔥    🔥   ",
+            candleLine: "   ┃     ┃     ┃     ┃     ┃    ",
+            creamTop1: " 🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁 ",
+            creamTop2: "⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿",
+            fruitLayer: " 🍓 🍒 🍑 🍇 🍍 🍓 🍒 🍑 🍇  ",
+            cakeBody: "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓",
+            jamLayer: "🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯",
+            cutTop: "┌───────────────────────┬─────────┐",
+            cutCream: "│ 🧁⦿🧁⦿🧁⦿🧁⦿🧁⦿🧁 ⦿🧁 │ 🍰🍰🍰 │",
+            cutFruit: "│ 🍓 🍒 🍑 🍇 🍍 🍓 🍒 │ 🍰🍰🍰 │",
+            cutCake: "│ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │ 🍰🍰🍰 │",
+            cutJam: "│ 🍯🍯🍯🍯🍯🍯🍯🍯🍯🍯 │ 🍰🍰🍰 │",
+            cutBottom: "└───────────────────────┴─────────┘",
+            eatenLayer: "│                         │         │"
+        };
+
+        const heartFrames = [
+            "        🎆🎆🎆        ",
+            "      🎆🎆🎆🎆🎆      ",
+            "    🎆🎆🎆🎆🎆🎆🎆    ",
+            "  🎆🎆🎆🎆🎆🎆🎆🎆🎆  ",
+            "🎆🎆🎆🎆🎆🎆🎆🎆🎆🎆🎆",
+            "  🎆🎆🎆🎆🎆🎆🎆🎆🎆  ",
+            "    🎆🎆🎆🎆🎆🎆🎆    ",
+            "      🎆🎆🎆🎆🎆      ",
+            "        🎆🎆🎆        "
+        ];
+
+        // 精准居中函数，基于固定总宽度计算空格
+        function centerText(text, targetWidth) {
+            const textLen = text.length * CHAR_WIDTH;
+            const padLen = Math.max(0, targetWidth - textLen);
+            const leftPad = Math.floor(padLen / 2);
+            return " ".repeat(leftPad) + text + " ".repeat(padLen - leftPad);
+        }
+
+        function colorText(text, color) {
+            return `<span style="color:${color}">${text}</span>`;
+        }
+
+        function cutCake() {
+            if (isCut) return;
+            isCut = true;
+            eatStep = 0;
+            document.getElementById("cutTip").style.display = "none";
+            document.getElementById("eatTip").style.display = "block";
+            document.getElementById("eatBtn").style.display = "inline-block";
+            renderCake();
+        }
+
+        function eatCake() {
+            if (eatStep >= 5) {
+                isCut = false;
+                eatStep = 0;
+                document.getElementById("cutTip").style.display = "block";
+                document.getElementById("eatTip").style.display = "none";
+                document.getElementById("eatBtn").style.display = "none";
+                renderCake();
+                return;
+            }
+            eatStep++;
+            renderCake();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCake();
+        });
+
+        async function renderCake() {
+            const cakeDiv = document.getElementById("cake");
+            cakeDiv.innerHTML = `<span class="cut-tip" id="cutTip">点击切块</span><span class="eat-tip" id="eatTip">点击吃一块</span>`;
+            
+            cakeDiv.innerHTML += `<div class="title">${colorText(centerText(cakeElements.title, TOTAL_WIDTH), colors.title)}</div>`;
+            await sleep(200);
+
+            if (!isCut && eatStep === 0) {
+                for (let load of cakeElements.loading) {
+                    cakeDiv.innerHTML = `<span class="cut-tip" id="cutTip">点击切块</span><span class="eat-tip" id="eatTip">点击吃一块</span><div class="title">${colorText(centerText(cakeElements.title, TOTAL_WIDTH), colors.title)}</div>${centerText(load, TOTAL_WIDTH)}`;
+                    await sleep(600);
+                }
+                cakeDiv.innerHTML += "\n\n";
+                await sleep(300);
+
+                for (let i = 0; i < 2; i++) {
+                    let flame = colorText(centerText(`│${cakeElements.flameLine}│`, TOTAL_WIDTH), colors.flame);
+                    let candle = colorText(centerText(`│${cakeElements.candleLine}│`, TOTAL_WIDTH), colors.candle);
+                    cakeDiv.innerHTML += `<div class="candle-row">${flame}\n${candle}</div>`;
+                    await sleep(200);
+                    let darkFlame = centerText(`│${"   ░    ░    ░    ░    ░   "}│`, TOTAL_WIDTH);
+                    cakeDiv.innerHTML = cakeDiv.innerHTML.replace(/<div class="candle-row">.*?<\/div>/, 
+                        `<div class="candle-row">${darkFlame}\n${candle}</div>`);
+                    await sleep(200);
+                }
+                cakeDiv.innerHTML += "\n";
+                await sleep(300);
+            }
+
+            if (!isCut) {
+                const BORDER_TOP = centerText("┌──────────────────────────────────┐", TOTAL_WIDTH);
+                const BORDER_BOTTOM = centerText("└──────────────────────────────────┘", TOTAL_WIDTH);
+                const fullCake = [
+                    BORDER_TOP,
+                    colorText(centerText(`│${cakeElements.creamTop1}│`, TOTAL_WIDTH), colors.creamBorder),
+                    colorText(centerText(`│${cakeElements.creamTop2}│`, TOTAL_WIDTH), colors.cream),
+                    colorText(centerText(`│${cakeElements.fruitLayer}│`, TOTAL_WIDTH), colors.fruit),
+                    colorText(centerText(`│${cakeElements.cakeBody}│`, TOTAL_WIDTH), colors.cake),
+                    colorText(centerText(`│${cakeElements.jamLayer}│`, TOTAL_WIDTH), colors.jam),
+                    colorText(centerText(`│${cakeElements.cakeBody}│`, TOTAL_WIDTH), colors.cake),
+                    colorText(centerText(`│${cakeElements.jamLayer}│`, TOTAL_WIDTH), colors.jam),
+                    colorText(centerText(`│${cakeElements.cakeBody}│`, TOTAL_WIDTH), colors.cake),
+                    colorText(centerText(`│${cakeElements.creamTop2}│`, TOTAL_WIDTH), colors.cream),
+                    colorText(centerText(`│${cakeElements.creamTop1}│`, TOTAL_WIDTH), colors.creamBorder),
+                    BORDER_BOTTOM
+                ];
+                for (let line of fullCake) {
+                    cakeDiv.innerHTML += line + "\n";
+                    await sleep(150);
+                }
+                await renderHeart();
+            } else {
+                const cutLayers = [
+                    {line: cakeElements.cutTop, color: null},
+                    {line: cakeElements.cutCream, color: colors.cutCream, step: 1},
+                    {line: cakeElements.cutFruit, color: colors.cutFruit, step: 2},
+                    {line: cakeElements.cutCake, color: colors.cake, step: 3},
+                    {line: cakeElements.cutJam, color: colors.jam, step: 4},
+                    {line: cakeElements.cutCake, color: colors.cake, step: 3},
+                    {line: cakeElements.cutJam, color: colors.jam, step: 4},
+                    {line: cakeElements.cutCake, color: colors.cake, step: 3},
+                    {line: cakeElements.cutBottom, color: null}
+                ];
+
+                const cutCake = [];
+                for (let layer of cutLayers) {
+                    if (layer.step && eatStep >= layer.step) {
+                        cutCake.push(colorText(centerText(cakeElements.eatenLayer, TOTAL_WIDTH), colors.eaten));
+                    } else if (layer.color) {
+                        cutCake.push(colorText(centerText(layer.line, TOTAL_WIDTH), layer.color));
+                    } else {
+                        cutCake.push(centerText(layer.line, TOTAL_WIDTH));
+                    }
+                }
+
+                for (let line of cutCake) {
+                    cakeDiv.innerHTML += line + "\n";
+                    await sleep(200);
+                }
+
+                if (eatStep === 5) {
+                    cakeDiv.innerHTML += centerText("🍴 蛋糕吃完啦！点击再切一块～", TOTAL_WIDTH);
+                }
+            }
+        }
+
+        async function renderHeart() {
+            const cakeDiv = document.getElementById("cake");
+            const heartDiv = document.createElement("div");
+            heartDiv.className = "heart";
+            cakeDiv.appendChild(heartDiv);
+
+            for (let i = 0; i < 3; i++) {
+                for (let frame of heartFrames) {
+                    const color = colors.heart[Math.floor(Math.random() * colors.heart.length)];
+                    heartDiv.innerHTML = colorText(centerText(frame, TOTAL_WIDTH), color);
+                    await sleep(100);
+                }
+            }
+            const line1 = "下一个生日不知道陪不陪你过";
+            const line2 = "只希望你这个生日很快乐";
+            heartDiv.innerHTML = colorText(
+                centerText(line1, TOTAL_WIDTH) + "\n" + centerText(line2, TOTAL_WIDTH),
+                colors.heart[0]
+            );
+        }
+    </script>
+</body>
+</html>
