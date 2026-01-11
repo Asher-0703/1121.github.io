@@ -104,7 +104,7 @@
 <div id="jsi-cherry-container" class="container ">
   <!-- 爱心 -->
   <canvas id="pinkboard"  class="container heart"> </canvas>
-<div id="input">种地快乐，应该没人种地也挂科吧😏</div>
+<div id="input">小昱彤的专属礼物🎁</div>
 </div> 
 <script>
  setTimeout(function() {
@@ -183,7 +183,7 @@ var S = {
     if (i !== -1) {
       S.UI.simulate(decodeURI(action).substring(i + 3));
     } else {
-      S.UI.simulate('|#countdown 3|亲爱的|昱彤同学|晚安我很喜欢~|好听！|喜欢乖的宝❤|');
+      S.UI.simulate('|#countdown 3|亲爱的|晚安我很喜欢|好听~|想我的话就找我|我肯定也在想你|乖宝❤|');
     }
 
     S.Drawing.loop(function () {
@@ -330,7 +330,7 @@ S.UI = (function () {
             } else {
               S.Shape.switchShape(S.ShapeBuilder.letter(index), true);
             }
-          }, 1500, value, true); //倒数计时
+          }, 1100, value, true); //倒数计时
           break;
 
         case 'rectangle':
@@ -358,14 +358,14 @@ S.UI = (function () {
                 time = t;
                 S.Shape.switchShape(S.ShapeBuilder.letter(time));
               }
-            }, 300); //集合速度
+            }, 900); //集合速度
           }
           break;
 
         default:
           S.Shape.switchShape(S.ShapeBuilder.letter(current[0] === cmd ? 'What?' : current));
       }
-    }, 4100, sequence.length); //播放速度
+    }, 3000, sequence.length); //播放速度
   }
 
   function checkInputWidth(e) {
